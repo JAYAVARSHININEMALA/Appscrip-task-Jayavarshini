@@ -11,11 +11,6 @@ export default function Home({ products }) {
   const [category, setCategory] = useState('all')
   const [cart, setCart] = useState([])
 
-  // ✅ SAFETY CHECK (VERY IMPORTANT)
-  if (!products || products.length === 0) {
-    return <p style={{ padding: "20px" }}>Loading or No products available...</p>
-  }
-
   // 🔍 Filter Logic
   const filteredProducts = products.filter((product) => {
     return (
@@ -64,13 +59,17 @@ export default function Home({ products }) {
 
           {/* Product Grid */}
           <div className={styles.grid}>
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                addToCart={addToCart}
-              />
-            ))}
+            {filteredProducts.length === 0 ? (
+              <p>No products found</p>
+            ) : (
+              filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  addToCart={addToCart}
+                />
+              ))
+            )}
           </div>
         </div>
       </main>
@@ -80,25 +79,38 @@ export default function Home({ products }) {
   )
 }
 
-// ✅ SSR SAFE VERSION (FIXES 500 ERROR)
-export async function getServerSideProps() {
+// ✅ STATIC PROPS (BEST FOR VERCEL)
+export async function getStaticProps() {
   try {
     const res = await fetch('https://fakestoreapi.com/products')
 
     if (!res.ok) {
-      throw new Error("Failed to fetch data")
+      throw new Error("API failed")
     }
 
     const data = await res.json()
 
     return {
-      props: { products: data },
+      props: { products: data || [] },
+      revalidate: 60,
     }
   } catch (error) {
-    console.error("SSR Error:", error)
+    console.error("Error fetching products:", error)
 
+    // ✅ fallback data (ensures UI never breaks)
     return {
-      props: { products: [] },
+      props: {
+        products: [
+          {
+            id: 1,
+            title: "Sample Product",
+            price: 100,
+            category: "demo",
+            image: "https://via.placeholder.com/150",
+            rating: { rate: 4, count: 10 },
+          },
+        ],
+      },
     }
   }
 }
