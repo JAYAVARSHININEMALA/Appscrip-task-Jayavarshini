@@ -11,6 +11,11 @@ export default function Home({ products }) {
   const [category, setCategory] = useState('all')
   const [cart, setCart] = useState([])
 
+  // ✅ SAFETY CHECK (VERY IMPORTANT)
+  if (!products || products.length === 0) {
+    return <p style={{ padding: "20px" }}>Loading or No products available...</p>
+  }
+
   // 🔍 Filter Logic
   const filteredProducts = products.filter((product) => {
     return (
@@ -19,7 +24,7 @@ export default function Home({ products }) {
     )
   })
 
-  // ✅ Add to Cart Logic (fixed)
+  // 🛒 Add to Cart Logic
   const addToCart = (product) => {
     const exists = cart.find((item) => item.id === product.id)
 
@@ -38,7 +43,7 @@ export default function Home({ products }) {
         <meta name="keywords" content="products, ecommerce, shopping" />
       </Head>
 
-      {/* Header with Cart Count */}
+      {/* Header */}
       <Header cartCount={cart.length} />
 
       <main className={styles.container}>
@@ -75,12 +80,25 @@ export default function Home({ products }) {
   )
 }
 
-// ✅ SSR
+// ✅ SSR SAFE VERSION (FIXES 500 ERROR)
 export async function getServerSideProps() {
-  const res = await fetch('https://fakestoreapi.com/products')
-  const data = await res.json()
+  try {
+    const res = await fetch('https://fakestoreapi.com/products')
 
-  return {
-    props: { products: data },
+    if (!res.ok) {
+      throw new Error("Failed to fetch data")
+    }
+
+    const data = await res.json()
+
+    return {
+      props: { products: data },
+    }
+  } catch (error) {
+    console.error("SSR Error:", error)
+
+    return {
+      props: { products: [] },
+    }
   }
 }
